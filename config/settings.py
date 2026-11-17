@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "board",
 ]
 
 MIDDLEWARE = [
@@ -128,3 +129,14 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Dock operations
+# Only the values that differ from dockops.models.OpsConfig (the demo defaults).
+DOCKOPS = {}
+
+# How often the live board asks for fresh data.
+BOARD_REFRESH_SECONDS = int(os.environ.get("BOARD_REFRESH_SECONDS", "30"))
+
+# Automatic simulator: the operation advances by itself (for the deployed demo).
+SIMULATOR_AUTO = os.environ.get("SIMULATOR_AUTO", "0") == "1"
