@@ -21,7 +21,9 @@ departure) and measures how closely the day follows the plan.
   and the public holidays of a configurable country (150+ countries, via the
   [`holidays`](https://pypi.org/project/holidays/) package).
 - **Demo data**: a seed command builds months of invented history and a "today" that
-  shows every state of the board at any hour; a simulator *(planned)* moves it forward.
+  shows every state of the board at any hour; a simulator moves it forward step by step
+  (`python manage.py simulate`, a button in the admin, or automatically while the board
+  is open).
 - **Ready for translation**: every visible text goes through Django's translation
   system, in templates and in JavaScript. English only for now.
 
@@ -54,7 +56,7 @@ source venv/Scripts/activate      # Windows (Git Bash); on macOS/Linux: source v
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_demo          # invented data around the current time (--seed N to repeat it)
-python manage.py runserver
+python manage.py runserver          # board at http://127.0.0.1:8000/, admin at /admin/ (createsuperuser first)
 ```
 
 ### Configuration
@@ -102,7 +104,7 @@ dock-ops-dashboard/
 - [x] Project setup
 - [x] Live board: model, seed data, JSON endpoint, page, charts and overlays
 - [x] Public holidays as days off
-- [ ] Simulator and admin
+- [x] Simulator (manual and automatic) and admin
 - [ ] History page with sign-in, permissions and downloads
 - [ ] PostgreSQL
 - [ ] Polish, CI and deployment
