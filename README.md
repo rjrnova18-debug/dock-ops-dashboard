@@ -4,23 +4,26 @@ A live operations board for the loading area of a distribution center, built wit
 It follows every transport through its visit (appointment, arrival, inspection, loading,
 departure) and measures how closely the day follows the plan.
 
-> **Status: work in progress.** The domain rules are done and tested; the web
-> application is being built in phases (see [Roadmap](#roadmap)).
+> **Status: work in progress.** The live board works end to end; the simulator, the
+> history page and deployment are being built in phases (see [Roadmap](#roadmap).
 
 ## Features
 
-Planned for v1.0:
-
 - **Live board** (public, made for a wall display): weekly dispatch counter, a status
   pipeline, loading and cycle time trends, adherence per checkpoint, hangar-style bay
-  cards with live loading timers, and the incoming list. Refreshes itself every 30 s.
-- **History** (sign-in required): indicators for any period, grouped by day, week or
+  cards with live loading timers, and the incoming list. It refreshes itself every 30 s
+  without reloading; any chart, the week's completed list and every transport open in
+  a detail view, by mouse or keyboard. On a wide screen it is a fixed 1920×1080 "wall"
+  layout scaled to fit; on smaller screens the panels stack.
+- **History** *(planned)* (sign-in required): indicators for any period, grouped by day, week or
   month, an activity calendar, slowest and fastest loadings, and CSV / Excel downloads.
 - **Working time, not clock time**: durations skip nights, breaks, the weekly rest day
   and the public holidays of a configurable country (150+ countries, via the
   [`holidays`](https://pypi.org/project/holidays/) package).
-- **Demo data**: a seed command and a simulator that moves the operation forward, so
-  the board always looks like a day in progress. All data is invented.
+- **Demo data**: a seed command builds months of invented history and a "today" that
+  shows every state of the board at any hour; a simulator *(planned)* moves it forward.
+- **Ready for translation**: every visible text goes through Django's translation
+  system, in templates and in JavaScript. English only for now.
 
 ## Tech stack
 
@@ -66,6 +69,7 @@ All settings have development defaults. For a deployment, set:
 | `TIME_ZONE` | `UTC` | The operation's local time zone |
 | `HOLIDAYS_COUNTRY` | empty (no holidays) | ISO country code, e.g. `US`, `DE`. Public holidays count as days off |
 | `HOLIDAYS_SUBDIVISION` | empty | State or province, for countries with regional holidays |
+| `BOARD_REFRESH_SECONDS` | `30` | How often the live board asks for fresh data |
 
 ## Run the tests
 
@@ -80,6 +84,12 @@ dock-ops-dashboard/
 ├── config/          Django project: settings, root URLs, WSGI/ASGI
 ├── dockops/         Domain rules in pure Python (no Django)
 │   └── tests/       One test file per module
+├── board/           Live board app: Transport model, demo data, views, page and JS
+│   ├── demo.py      Invented data as pure functions (seed)
+│   ├── conf.py      The operation's configuration and public holidays
+│   └── static/board/  board.js, charts.js, overlays.js (ES modules, no build step)
+├── templates/       Shared templates (base.html)
+├── static/          Shared CSS and JS, vendored fonts and Chart.js (with licenses)
 ├── manage.py
 ├── pyproject.toml   pytest configuration
 └── requirements.txt
@@ -89,7 +99,8 @@ dock-ops-dashboard/
 
 - [x] Domain rules (`dockops`) with tests
 - [x] Project setup
-- [ ] Live board: model, seed data, JSON endpoint, page and charts
+- [x] Live board: model, seed data, JSON endpoint, page, charts and overlays
+- [x] Public holidays as days off
 - [ ] Simulator and admin
 - [ ] History page with sign-in, permissions and downloads
 - [ ] PostgreSQL
