@@ -1,8 +1,12 @@
-"""The public JSON endpoint of the live board."""
+"""The live board: its public JSON endpoint and its page."""
+import re
 from datetime import datetime, timedelta
+from pathlib import Path
 from random import Random
 
 import pytest
+from django.contrib.staticfiles import finders
+from django.test import override_settings
 from django.urls import reverse
 
 from board.demo import seed_transports
@@ -66,3 +70,36 @@ def test_the_answer_is_never_cached(client, fixed_now):
 
 def test_only_get_is_allowed(client):
     assert client.post(reverse("board:data")).status_code == 405
+
+
+# ------------------------------------------------------------------- The page
+
+def test_the_root_address_opens_the_board_page(client):
+    response = client.get("/")
+    html = response.content.decode()
+
+    assert response.status_code == 200
+    assert f'data-url="{reverse("board:data")}"' in html
+    assert 'data-refresh-seconds="30"' in html
+    assert reverse("javascript-catalog") in html
+    assert "board/board.js" in html
+
+
+@override_settings(BOARD_REFRESH_SECONDS=45)
+def test_the_refresh_interval_comes_from_the_settings(client):
+    assert 'data-refresh-seconds="45"' in client.get("/").content.decode()
+
+
+def test_the_javascript_catalog_is_served(client):
+    response = client.get(reverse("javascript-catalog"))
+
+    assert response.status_code == 200
+    assert "gettext" in response.content.decode()
+
+
+def test_every_font_named_by_the_stylesheet_is_in_the_repository():
+    stylesheet = Path(finders.find("css/mecha.css"))
+    fonts = re.findall(r'url\("([^"]+\.woff2)"\)', stylesheet.read_text(encoding="utf-8"))
+
+    assert len(fonts) == 9
+    assert all((stylesheet.parent / font).resolve().is_file() for font in fonts)

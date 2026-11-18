@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% comment %}
+  The live board's chassis: every label, no data. board.js fetches the JSON from
+  data-url every data-refresh-seconds and fills the elements by id.
+{% endcomment %}
+
+{% block title %}{% translate "Live board" %}{% endblock %}
+
+{% block content %}
+<main class="screen" id="screen" data-url="{% url 'board:data' %}" data-refresh-seconds="{{ refresh_seconds }}">
+
+  <header class="panel cut hdr">
+    <div class="in cut">
+      <div class="brand">
+        <span class="code">DCK-OPS // CONTROL DECK 01</span>
+        <h1>{% translate "Dock operations" %}</h1>
+      </div>
+      <div class="hblock live" id="live" role="status">
+        <span class="lamp" aria-hidden="true"></span>
+        <div>
+          <div class="state" id="liveState">{% translate "Connecting" %}</div>
+          <div class="upd">
+            {% translate "Last update" %} <b id="lastUpdate">--:--:--</b> ·
+            {% blocktranslate with seconds=refresh_seconds %}refresh every {{ seconds }} s{% endblocktranslate %}
+          </div>
+        </div>
+      </div>
+      <button class="week" id="weekButton" type="button" aria-haspopup="dialog">
+        <span class="week-text">
+          <span class="hlabel" id="weekLabel">{% translate "Week" %}</span>
+          <span class="big"><span id="weekDispatched">–</span> <small>/ <span id="weekWorkload">–</span></small></span>
+        </span>
+        <span class="segbar" id="weekBar" aria-hidden="true"></span>
+        <span class="pct" id="weekPercent"></span>
+        <span class="open">{% translate "Open list" %} ▸</span>
+      </button>
+      <div class="hblock clock">
+        <span class="hlabel" id="clockDay">{% translate "Server time" %}</span>
+        <span class="t" id="clock">--:--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="panel cut p-status" aria-labelledby="h-status">
+    <div class="in cut">
+      <div class="ph">
+        <span class="no">01</span><h2 id="h-status">{% translate "Status" %}</h2>
+        <span class="sub">{% translate "today's operation" %}</span>
+        <div class="meta"><span id="statusTotal"></span>
+          <button class="expand" type="button" data-expand="status" aria-label="{% translate 'Open the status chart larger' %}">⤢</button></div>
+      </div>
+      <div class="pb" id="statusBody"></div>
+    </div>
+  </section>
+
+  <section class="panel cut p-adh" aria-labelledby="h-adh">
+    <div class="in cut">
+      <div class="ph">
+        <span class="no">02</span><h2 id="h-adh">{% translate "Adherence" %}</h2>
+        <span class="sub">{% translate "checkpoints today" %}</span>
+        <div class="meta">
+          <span class="key"><i class="mk-arc" aria-hidden="true"></i>{% translate "All" %}</span>
+          <span class="key"><i class="mk-dot" aria-hidden="true"></i>{% translate "Dry" %} · <span id="adhDryCount">0</span></span>
+          <span class="key"><i class="mk-dia" aria-hidden="true"></i>{% translate "Cold" %} · <span id="adhColdCount">0</span></span>
+          <button class="expand" type="button" data-expand="adherence" aria-label="{% translate 'Open the adherence chart larger' %}">⤢</button>
+        </div>
+      </div>
+      <div class="pb"><div class="gauges" id="gauges"></div></div>
+    </div>
+  </section>
+
+  <section class="panel cut p-bays" aria-labelledby="h-bays">
+    <div class="in cut">
+      <div class="ph">
+        <span class="no">03</span><h2 id="h-bays">{% translate "Hangar bays" %}</h2>
+        <span class="minimap" id="bayMap" role="img"></span><span class="sub" id="bayOccupancy"></span>
+        <div class="meta levels">
+          <span class="lvl ok">● {% translate "OK" %}</span><span class="sub">{% translate "below reference" %}</span>
+          <span class="lvl warning">▲ {% translate "Warning" %}</span><span class="sub">{% translate "at or over" %}</span>
+          <span class="lvl critical">■ {% translate "Critical" %}</span><span class="sub" id="criticalNote"></span>
+        </div>
+      </div>
+      <div class="pb"><div class="bays" id="bays"></div></div>
+    </div>
+  </section>
+
+  <section class="panel cut p-load" aria-labelledby="h-load">
+    <div class="in cut">
+      <div class="ph">
+        <span class="no">04</span><h2 id="h-load">{% translate "Loading time" %}</h2>
+        <span class="sub">{% translate "average per day" %}</span>
+        <div class="meta">{% translate "Week avg" %} <span class="wk" id="loadingWeekAvg">–</span>
+          <button class="expand" type="button" data-expand="loading" aria-label="{% translate 'Open the loading time chart larger' %}">⤢</button></div>
+      </div>
+      <div class="pb"><div class="chartbox"><canvas id="loadingChart" role="img" aria-label="{% translate 'Average loading time per day' %}"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="panel cut p-cycle" aria-labelledby="h-cycle">
+    <div class="in cut">
+      <div class="ph">
+        <span class="no">05</span><h2 id="h-cycle">{% translate "Cycle time" %}</h2>
+        <span class="sub">{% translate "arrival to departure" %}</span>
+        <div class="meta">{% translate "Week avg" %} <span class="wk" id="cycleWeekAvg">–</span>
+          <button class="expand" type="button" data-expand="cycle" aria-label="{% translate 'Open the cycle time chart larger' %}">⤢</button></div>
+      </div>
+      <div class="pb"><div class="chartbox"><canvas id="cycleChart" role="img" aria-label="{% translate 'Average cycle time per day' %}"></canvas></div></div>
+    </div>
+  </section>
+
+  <section class="panel cut p-inc" aria-labelledby="h-inc">
+    <div class="in cut">
+      <div class="ph">
+        <span class="no">06</span><h2 id="h-inc">{% translate "Incoming" %}</h2>
+        <span class="sub">{% translate "yard and appointments" %}</span>
+        <div class="meta" id="incomingMeta"></div>
+      </div>
+      <div class="pb"><div class="ilist" id="incoming"></div></div>
+    </div>
+  </section>
+</main>
+
+<dialog class="overlay cut" id="overlay" aria-labelledby="overlayTitle"></dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% url 'javascript-catalog' %}"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script type="module" src="{% static 'board/board.js' %}"></script>
+{% endblock %}
