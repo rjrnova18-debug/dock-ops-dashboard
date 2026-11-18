@@ -16,6 +16,9 @@ Planned for v1.0:
   cards with live loading timers, and the incoming list. Refreshes itself every 30 s.
 - **History** (sign-in required): indicators for any period, grouped by day, week or
   month, an activity calendar, slowest and fastest loadings, and CSV / Excel downloads.
+- **Working time, not clock time**: durations skip nights, breaks, the weekly rest day
+  and the public holidays of a configurable country (150+ countries, via the
+  [`holidays`](https://pypi.org/project/holidays/) package).
 - **Demo data**: a seed command and a simulator that moves the operation forward, so
   the board always looks like a day in progress. All data is invented.
 
@@ -60,6 +63,8 @@ All settings have development defaults. For a deployment, set:
 | `DJANGO_DEBUG` | `1` | `0` to turn debug off |
 | `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Comma-separated host names |
 | `TIME_ZONE` | `UTC` | The operation's local time zone |
+| `HOLIDAYS_COUNTRY` | empty (no holidays) | ISO country code, e.g. `US`, `DE`. Public holidays count as days off |
+| `HOLIDAYS_SUBDIVISION` | empty | State or province, for countries with regional holidays |
 
 ## Run the tests
 

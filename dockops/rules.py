@@ -23,8 +23,8 @@ def working_minutes(start: datetime | None, end: datetime | None, config: OpsCon
     """
     Minutes of working time between start and end (rules W1-W5).
 
-    Working time is the shift minus the break. A rest day in the middle of the range is
-    skipped; it counts only when the range starts or ends on it.
+    Working time is the shift minus the break. A rest day (the weekly one or a holiday)
+    in the middle of the range is skipped; it counts only when the range starts or ends on it.
 
     count_activity  apply the activity rule (used for loading): an idle period counts
                     when the range starts or ends inside it, because that proves someone
@@ -66,10 +66,15 @@ def _periods_of_day(day: date, config: OpsConfig) -> list[tuple[datetime, dateti
     ]
 
 
+def is_rest_day(day: date, config: OpsConfig) -> bool:
+    """A day the operation normally does not work: the weekly rest day or a holiday."""
+    is_weekly_rest = config.rest_weekday is not None and day.weekday() == config.rest_weekday
+    return is_weekly_rest or day in config.holidays
+
+
 def _is_skipped_rest_day(day: date, start: datetime, end: datetime, config: OpsConfig) -> bool:
     """A rest day counts only if the range starts or ends on it (someone did work that day)."""
-    is_rest_day = config.rest_weekday is not None and day.weekday() == config.rest_weekday
-    return is_rest_day and day not in (start.date(), end.date())
+    return is_rest_day(day, config) and day not in (start.date(), end.date())
 
 
 def _had_activity(period_start: datetime, period_end: datetime,

@@ -135,6 +135,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Only the values that differ from dockops.models.OpsConfig (the demo defaults).
 DOCKOPS = {}
 
+# Public holidays work like the weekly rest day. ISO country code ("US", "DE"...) and an
+# optional subdivision (state, province...); empty = no holidays.
+# Codes: https://github.com/vacanza/holidays#available-countries
+HOLIDAYS_COUNTRY = os.environ.get("HOLIDAYS_COUNTRY", "")
+HOLIDAYS_SUBDIVISION = os.environ.get("HOLIDAYS_SUBDIVISION", "")
+
 # How often the live board asks for fresh data.
 BOARD_REFRESH_SECONDS = int(os.environ.get("BOARD_REFRESH_SECONDS", "30"))
 

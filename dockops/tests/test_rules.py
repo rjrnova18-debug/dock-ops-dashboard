@@ -19,6 +19,7 @@ from dockops.rules import (
     dispatch_day,
     in_workload,
     is_loading_clock_running,
+    is_rest_day,
     loading_day,
     loading_minutes,
     loading_minutes_so_far,
@@ -83,6 +84,36 @@ def test_a_rest_day_counts_when_the_range_starts_or_ends_on_it():
 def test_without_a_rest_day_every_day_counts():
     every_day = OpsConfig(rest_weekday=None)
     assert worked(at(16, day=FRI), at(9, day=MON), every_day) == (5 + 13 + 13 + 2) * 60
+
+
+# A holiday on Thursday 13 March 2025, with the normal Sunday rest day.
+THU = date(2025, 3, 13)
+WITH_HOLIDAY = OpsConfig(holidays=frozenset({THU}))
+
+
+def test_rest_days_are_the_weekly_rest_day_and_the_holidays():
+    assert is_rest_day(SUN, WITH_HOLIDAY)
+    assert is_rest_day(THU, WITH_HOLIDAY)
+    assert not is_rest_day(WED, WITH_HOLIDAY)
+    assert not is_rest_day(THU, CONFIG)                         # no holidays configured
+    assert is_rest_day(THU, OpsConfig(rest_weekday=None, holidays=frozenset({THU})))
+
+
+def test_a_holiday_in_the_middle_is_skipped_like_the_rest_day():
+    # Wednesday 16:00 -> Friday 09:00: Wednesday 5 h + Friday 2 h (Thursday skipped)
+    assert worked(at(16), at(9, day=FRI), WITH_HOLIDAY) == (5 + 2) * 60
+    # Holiday Thursday and Sunday in the same range: both skipped
+    assert worked(at(16), at(9, day=MON), WITH_HOLIDAY) == (5 + 13 + 13 + 2) * 60
+
+
+def test_a_holiday_counts_when_the_range_starts_or_ends_on_it():
+    assert worked(at(8, day=THU), at(11, day=THU), WITH_HOLIDAY) == 180
+    assert worked(at(20), at(9, day=THU), WITH_HOLIDAY) == 60 + 120
+
+
+def test_a_holiday_on_the_rest_day_changes_nothing():
+    sunday_holiday = OpsConfig(holidays=frozenset({SUN}))
+    assert worked(at(16, day=FRI), at(9, day=MON), sunday_holiday) == worked(at(16, day=FRI), at(9, day=MON))
 
 
 def loaded(start, end):

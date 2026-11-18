@@ -68,6 +68,7 @@ class OpsConfig:
     break_start: time = time(13, 0)
     break_end: time = time(14, 0)
     rest_weekday: int | None = 6           # date.weekday(): Monday = 0 ... Sunday = 6; None = no rest day
+    holidays: frozenset[date] = frozenset()  # public holidays: they work like the rest day
     week_start_weekday: int = 0            # the weekday a reporting week starts on
 
     carryover_days: int = 5                # how many days back a pending transport still counts
