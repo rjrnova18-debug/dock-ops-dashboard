@@ -246,6 +246,53 @@ body.page { min-height: 100vh; }
 .page-links a, .page-body a:not(.btn) { color: var(--navy-2); }
 .mono { font-family: var(--f-mono); word-break: break-all; }
 
+/* ---------- history page ---------- */
+.hist { max-width: 1480px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.hist .hdr > .in { flex-wrap: wrap; }
+.hist-rule { flex: 1; font-size: 13px; color: var(--ink-2); min-width: 240px; }
+.hist-user { gap: 14px; font-size: 13px; border-right: 0; }
+.hist-user a { color: var(--navy-2); }
+.hist-user form { margin: 0; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
+.filters label { display: flex; flex-direction: column; gap: 6px; font: 600 10px/1 var(--f-display); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.filters input, .filters select { font: 14px var(--f-body); padding: 8px 10px; border: 1px solid var(--seam-2); background: var(--plate); color: var(--ink); min-width: 140px; }
+.filters [hidden] { display: none; }
+.filter-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+.btn.small { font-size: 11px; padding: 9px 14px; }
+.btn.secondary { background: var(--sky); color: var(--navy); }
+.hist-line { margin: 0; font: 600 13px/1.4 var(--f-display); letter-spacing: .08em; color: var(--ink-2); text-transform: uppercase; }
+.hist-content { display: flex; flex-direction: column; gap: 14px; transition: opacity .2s; }
+.hist-content.loading { opacity: .45; }
+.notice.info { background: var(--sky); color: var(--navy); border-left-color: var(--navy-2); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.tile .pb { display: flex; flex-direction: column; gap: 8px; }
+.tile .label { font: 600 10.5px/1.2 var(--f-display); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); display: flex; justify-content: space-between; gap: 8px; }
+.tile .value { font: 700 30px/1 var(--f-display); }
+.tile .split { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--ink-2); }
+.tile .split b { color: var(--ink); font-weight: 600; }
+.tile details { font: 400 12px/1.4 var(--f-body); letter-spacing: normal; text-transform: none; color: var(--ink-2); }
+.tile details summary { cursor: pointer; font: 600 10px/1 var(--f-display); letter-spacing: .1em; color: var(--navy-2); list-style: none; }
+.tile details[open] summary { margin-bottom: 4px; }
+.hist-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(440px, 1fr)); gap: 12px; }
+.chart-card.wide { grid-column: 1 / -1; }
+.chart-card .chartbox { height: 260px; }
+.chart-card.wide .chartbox { height: 420px; }
+.chart-card .chart-table { display: none; max-height: 420px; overflow: auto; }
+.chart-card.show-table .chartbox { display: none; }
+.chart-card.show-table .chart-table { display: block; }
+.expand[aria-pressed="true"] { background: var(--navy-2); color: #fff; border-color: var(--navy-2); }
+@media (max-width: 520px) { .hist-charts { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- printing: the content, whole, in colour ---------- */
+@media print {
+  .no-print, .expand, dialog { display: none !important; }
+  body, body.history-page { background: #fff; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .hist { max-width: none; padding: 0; }
+  .tile, .chart-card, table.t tr, .panel { break-inside: avoid; }
+  .chart-card .chart-table { max-height: none; overflow: visible; }
+}
+
 /* ---------- flow mode: smaller screens ---------- */
 .screen { display: grid; gap: 14px; padding: 16px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 900px) {
@@ -292,6 +339,7 @@ body.wall .p-adh .pb { padding-top: 8px; }
   .card.row:hover > .ci { background: #FAFCFF; }
   .irow.row:hover, table.t tr.row:hover { background: var(--plate-2); }
   .week:hover .open, .expand:hover { border-color: var(--navy-2); color: var(--navy-2); }
+  .expand[aria-pressed="true"]:hover { color: #fff; }
 }
 @media (prefers-reduced-motion: reduce) {
   .live .lamp { animation: none; }

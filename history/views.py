@@ -10,7 +10,9 @@ from functools import wraps
 from typing import NamedTuple
 
 from django.conf import settings
+from django.contrib.auth.decorators import login_required, permission_required
 from django.http import JsonResponse
+from django.shortcuts import render
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
@@ -98,6 +100,25 @@ def _transports(params: HistoryRequest):
 
 
 # ------------------------------------------------------------------- Views
+
+@require_GET
+@never_cache
+@login_required                                                   # no session: sign in, then come back
+@permission_required(HISTORY_PERMISSION, raise_exception=True)    # no permission: the "no access" page
+def history_page(request):
+    """The history page: a chassis of labels that history.js fills from history_data."""
+    return render(request, "history/history.html", {
+        "today": local_now().date(),
+        "week_start_weekday": get_ops_config().week_start_weekday,
+        "charts": [
+            ("dispatched", _("Dispatched")),
+            ("adherence", _("Adherence")),
+            ("loading", _("Average loading time")),
+            ("cycle", _("Average cycle time")),
+            ("checkpoints", _("Adherence by checkpoint")),
+        ],
+    })
+
 
 @require_GET
 @never_cache

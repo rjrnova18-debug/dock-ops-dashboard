@@ -121,7 +121,7 @@ AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "history:page"            # signing in is only needed for the history
 LOGOUT_REDIRECT_URL = "/"
 
 SESSION_COOKIE_AGE = 30 * 60              # a session expires after 30 minutes without activity...

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% comment %}
+  The history's chassis: every label, no data. history.js reads the filters from the
+  address, asks data-url for the summary and fills the elements by id.
+{% endcomment %}
+
+{% block title %}{% translate "History" %}{% endblock %}
+{% block body_class %}history-page{% endblock %}
+
+{% block content %}
+<main class="hist" id="history"
+      data-url="{% url 'history:data' %}" data-csv-url="{% url 'history:csv' %}" data-excel-url="{% url 'history:excel' %}"
+      data-login-url="{% url 'login' %}" data-today="{{ today|date:'Y-m-d' }}" data-week-start="{{ week_start_weekday }}">
+
+  <header class="panel cut hdr">
+    <div class="in cut">
+      <div class="brand"><span class="code">DCK-OPS // ARCHIVE</span><h1>{% translate "History" %}</h1></div>
+      <div class="hblock hist-rule">
+        <span>{% translate "Each indicator counts on the day it happened, not on the day of the appointment." %}</span>
+      </div>
+      <div class="hblock hist-user no-print">
+        <a href="{% url 'board:page' %}">◂ {% translate "Live board" %}</a>
+        <span class="sub">{{ user.get_username }}</span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}<button class="expand" type="submit">{% translate "Sign out" %}</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <section class="panel cut no-print" aria-label="{% translate 'Filters' %}">
+    <div class="in cut">
+      <div class="pb filters">
+        <label>{% translate "Period" %}
+          <select id="periodKind">
+            <option value="week">{% translate "Week" %}</option>
+            <option value="month">{% translate "Month" %}</option>
+            <option value="year">{% translate "Year" %}</option>
+            <option value="range">{% translate "Date range" %}</option>
+          </select>
+        </label>
+        <label data-period="week">{% translate "Any day of the week" %}<input type="date" id="weekDay"></label>
+        <label data-period="month">{% translate "Month" %}<input type="month" id="month"></label>
+        <label data-period="year">{% translate "Year" %}<input type="number" id="year" min="2000" max="2100" step="1"></label>
+        <label data-period="range">{% translate "From" %}<input type="date" id="rangeStart"></label>
+        <label data-period="range">{% translate "To" %}<input type="date" id="rangeEnd"></label>
+        <label>{% translate "Group by" %}
+          <select id="groupBy">
+            <option value="day">{% translate "Day" %}</option>
+            <option value="week">{% translate "Week" %}</option>
+            <option value="month">{% translate "Month" %}</option>
+          </select>
+        </label>
+        <label>{% translate "Cargo type" %}
+          <select id="cargo">
+            <option value="">{% translate "All" %}</option>
+            <option value="dry">{% translate "Dry" %}</option>
+            <option value="cold">{% translate "Cold" %}</option>
+          </select>
+        </label>
+        <div class="filter-actions">
+          <a class="btn small" id="csvLink" href="#">{% translate "Download CSV" %}</a>
+          <a class="btn small" id="excelLink" href="#">{% translate "Download Excel" %}</a>
+          <button class="btn small secondary" type="button" id="printButton">{% translate "Print" %}</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="hist-line" id="summaryLine" role="status"></p>
+  <div id="message" aria-live="polite"></div>
+
+  <div class="hist-content" id="content">
+    <section class="tiles" id="tiles" aria-label="{% translate 'Indicators' %}"></section>
+
+    <section class="hist-charts" aria-label="{% translate 'Charts' %}">
+      {% for name, title in charts %}
+      <article class="panel cut chart-card" data-chart="{{ name }}">
+        <div class="in cut">
+          <div class="ph">
+            <h2>{{ title }}</h2>
+            <div class="meta no-print">
+              <button class="expand" type="button" data-show-table aria-pressed="false">{% translate "Table" %}</button>
+              <button class="expand" type="button" data-widen aria-pressed="false" aria-label="{% translate 'Enlarge' %}">⤢</button>
+            </div>
+          </div>
+          <div class="pb">
+            <div class="chartbox"><canvas id="chart-{{ name }}" role="img" aria-label="{{ title }}"></canvas></div>
+            <div class="chart-table" id="table-{{ name }}"></div>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </section>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% url 'javascript-catalog' %}"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script type="module" src="{% static 'history/history.js' %}"></script>
+{% endblock %}
