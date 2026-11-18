@@ -7,7 +7,7 @@
 
 /* global gettext, interpolate */
 import {
-  CARGO, CHECKPOINT, STATUS, badge, coldChip, dayLabel, duration, esc, hhmm, isoDay, moment, pad,
+  CARGO, CHECKPOINT, STATUS, badge, coldChip, dayLabel, duration, esc, hhmm, isoDay, moment, pad, planVersusActual,
 } from "../js/format.js";
 import { STATUS_COLORS, createTrendChart, renderGauges, renderPipeline, updateTrendChart } from "./charts.js";
 
@@ -256,13 +256,6 @@ function renderDetail(payload) {
     ];
   const timer = !fromCompleted && row.timer ? `<div class="dsec"><h4>${esc(gettext("Loading timer"))}</h4>${deps.timerBlock(row)}</div>` : "";
 
-  const plan = row.detail.checkpoints.map((c) => {
-    const expected = c.checkpoint === "inspection"
-      ? (c.deadline ? interpolate(gettext("by %(time)s"), { time: hhmm(c.deadline) }, true) : "–")
-      : moment(c.expected, today);
-    return `<tr><td>${esc(CHECKPOINT[c.checkpoint])}</td><td>${esc(expected)}</td><td>${esc(moment(c.actual, today))}</td><td>${badge(c.outcome)}</td></tr>`;
-  }).join("");
-
   const d = row.detail;
   const data = [
     field(gettext("Carrier"), esc(d.carrier || "–")), field(gettext("Planner"), esc(d.planner || "–")),
@@ -277,7 +270,7 @@ function renderDetail(payload) {
       <div class="dsec"><h4>${esc(gettext("Summary"))}</h4><div class="dgrid">${summary.join("")}</div></div>
       ${timer}
       <div class="dsec"><h4>${esc(gettext("Plan versus actual"))}</h4>
-        ${table([gettext("Checkpoint"), gettext("Expected"), gettext("Actual"), gettext("Outcome")], plan)}</div>
+        ${planVersusActual(row.detail.checkpoints, today)}</div>
       <div class="dsec"><h4>${esc(gettext("Transport data"))}</h4><div class="dgrid">${data.join("")}</div></div>
     </div>`;
 }

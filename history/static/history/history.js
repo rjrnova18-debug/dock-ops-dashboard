@@ -7,7 +7,8 @@
 
 /* global gettext, interpolate */
 import { CARGO, duration, esc, pad, parseIso } from "../js/format.js";
-import { createCharts, renderCharts } from "./history_charts.js";
+import { createCharts, renderCalendar, renderCalendarRanking, renderCharts } from "./history_charts.js";
+import { renderExtremes, renderUnclosed, setupDetail } from "./history_tables.js";
 
 const $ = (id) => document.getElementById(id);
 const root = $("history");
@@ -97,6 +98,7 @@ function apiQuery(filters, period) {
 
 let latestRequest = 0;
 let controller = null;
+const calendar = { activity: [], metric: "arrivals" };     // switching the metric needs no new request
 
 async function load() {
   const filters = filtersFromInputs();
@@ -146,6 +148,15 @@ function render(summary, filters, period) {
   showMessage(empty ? gettext("Nothing was recorded in this period. The history only covers what the system has recorded.") : "", "info");
   renderTiles(summary, visible);
   renderCharts(summary, visible);
+  calendar.activity = summary.activity;
+  drawCalendar();
+  renderExtremes(summary);
+  renderUnclosed(summary.unclosed);
+}
+
+function drawCalendar() {
+  renderCalendar($("calendar"), calendar.activity, calendar.metric, WEEK_START);
+  renderCalendarRanking($("calendarRanking"), calendar.activity, calendar.metric, WEEK_START);
 }
 
 /** "November 2026 · all cargo types · grouped by week" */
@@ -201,6 +212,22 @@ for (const input of [inputs.week, inputs.month, inputs.year, inputs.start, input
   input.addEventListener("change", load);
 }
 $("printButton").addEventListener("click", () => window.print());
+// A printed page shows every table in full, the unclosed list included.
+let unclosedWasOpen = false;
+addEventListener("beforeprint", () => { unclosedWasOpen = $("unclosedPanel").open; $("unclosedPanel").open = true; });
+addEventListener("afterprint", () => { $("unclosedPanel").open = unclosedWasOpen; });
+document.querySelectorAll("[data-metric]").forEach((button) => button.addEventListener("click", () => {
+  calendar.metric = button.dataset.metric;
+  document.querySelectorAll("[data-metric]").forEach((b) => b.setAttribute("aria-pressed", String(b === button)));
+  drawCalendar();
+}));
+$("calendarAsTable").addEventListener("click", (event) => {
+  const asTable = !$("calendar").hidden;          // the calendar is showing: switch to the tables
+  $("calendar").hidden = asTable;
+  $("calendarRanking").hidden = !asTable;
+  event.currentTarget.setAttribute("aria-pressed", String(asTable));
+});
+setupDetail();
 document.querySelectorAll(".chart-card").forEach((card) => {
   for (const [selector, cls] of [["[data-show-table]", "show-table"], ["[data-widen]", "wide"]]) {
     const button = card.querySelector(selector);

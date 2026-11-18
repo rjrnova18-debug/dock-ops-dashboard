@@ -106,3 +106,19 @@ export const badge = (outcome) =>
   `<span class="badge ${esc(outcome)}">${OUTCOME_ICON[outcome] ?? ""} ${esc(OUTCOME[outcome] ?? outcome)}</span>`;
 
 export const coldChip = (cargo) => (cargo === "cold" ? `<span class="chip-cold">◆ ${esc(gettext("Cold"))}</span>` : "");
+
+/**
+ * The "plan versus actual" table of a transport detail (the same on every screen): one
+ * line per checkpoint with expected, actual and the outcome badge. Inspection has no plan
+ * of its own, so it shows its deadline ("by 10:20").
+ */
+export function planVersusActual(checkpoints, todayIso) {
+  const rows = checkpoints.map((c) => {
+    const expected = c.checkpoint === "inspection"
+      ? (c.deadline ? interpolate(gettext("by %(time)s"), { time: hhmm(c.deadline) }, true) : "–")
+      : moment(c.expected, todayIso);
+    return `<tr><td>${esc(CHECKPOINT[c.checkpoint])}</td><td>${esc(expected)}</td><td>${esc(moment(c.actual, todayIso))}</td><td>${badge(c.outcome)}</td></tr>`;
+  }).join("");
+  const head = [gettext("Checkpoint"), gettext("Expected"), gettext("Actual"), gettext("Outcome")];
+  return `<table class="t"><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>`;
+}

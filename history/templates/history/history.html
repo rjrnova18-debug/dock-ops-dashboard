@@ -94,8 +94,58 @@
       </article>
       {% endfor %}
     </section>
+
+    <section class="panel cut" aria-labelledby="h-calendar">
+      <div class="in cut">
+        <div class="ph">
+          <h2 id="h-calendar">{% translate "Activity calendar" %}</h2>
+          <span class="sub">{% translate "by the real date of each arrival and departure, never the appointment" %}</span>
+          <div class="meta no-print">
+            <button class="expand" type="button" data-metric="arrivals" aria-pressed="true">{% translate "Arrivals" %}</button>
+            <button class="expand" type="button" data-metric="departures" aria-pressed="false">{% translate "Departures" %}</button>
+            <button class="expand" type="button" id="calendarAsTable" aria-pressed="false">{% translate "Table" %}</button>
+          </div>
+        </div>
+        <div class="pb">
+          <div id="calendar"></div>
+          <div id="calendarRanking" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="extremes">
+      <article class="panel cut" aria-labelledby="h-slowest">
+        <div class="in cut">
+          <div class="ph"><h2 id="h-slowest">{% translate "Slowest loadings" %}</h2><span class="sub">{% translate "select a row for its detail" %}</span></div>
+          <div class="pb" id="slowest"></div>
+        </div>
+      </article>
+      <article class="panel cut" aria-labelledby="h-fastest">
+        <div class="in cut">
+          <div class="ph"><h2 id="h-fastest">{% translate "Fastest loadings" %}</h2><span class="sub">{% translate "select a row for its detail" %}</span></div>
+          <div class="pb" id="fastest"></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel cut" aria-labelledby="h-unclosed">
+      <div class="in cut">
+        <details id="unclosedPanel">
+          <summary class="ph">
+            <h2 id="h-unclosed">{% translate "Unclosed transports" %} (<span id="unclosedCount">0</span>)</h2>
+            <span class="sub no-print">{% translate "show or hide" %}</span>
+          </summary>
+          <div class="pb">
+            <p class="sub">{% translate "Transports with an appointment in this period that were never dispatched and are too old to be a carryover. The live board no longer shows them; they are almost always records nobody closed." %}</p>
+            <div id="unclosed"></div>
+          </div>
+        </details>
+      </div>
+    </section>
   </div>
 </main>
+
+<dialog class="overlay cut" id="overlay" aria-labelledby="overlayTitle"></dialog>
 {% endblock %}
 
 {% block scripts %}
