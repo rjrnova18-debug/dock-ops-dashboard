@@ -79,7 +79,7 @@
         <div class="meta levels">
           <span class="lvl ok">● {% translate "OK" %}</span><span class="sub">{% translate "below reference" %}</span>
           <span class="lvl warning">▲ {% translate "Warning" %}</span><span class="sub">{% translate "at or over" %}</span>
-          <span class="lvl critical">■ {% translate "Critical" %}</span><span class="sub" id="criticalNote"></span>
+          <span class="lvl critical">■ {% translate "Critical" %}</span><span class="sub">{% blocktranslate with minutes=critical_excess_minutes %}{{ minutes }} min over{% endblocktranslate %}</span>
         </div>
       </div>
       <div class="pb"><div class="bays" id="bays"></div></div>

@@ -18,7 +18,10 @@ from dockops import live, rules
 @require_GET
 def board_page(request):
     """The live board page: a chassis of labels that board.js fills from board_data. Public."""
-    return render(request, "board/board.html", {"refresh_seconds": settings.BOARD_REFRESH_SECONDS})
+    return render(request, "board/board.html", {
+        "refresh_seconds": settings.BOARD_REFRESH_SECONDS,
+        "critical_excess_minutes": get_ops_config().critical_excess_minutes,
+    })
 
 
 @require_GET
