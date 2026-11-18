@@ -140,6 +140,10 @@ AXES_LOCKOUT_TEMPLATE = "registration/lockout.html"
 # cannot sign in. It lives in the environment, never in the code; empty disables the route.
 HISTORY_EXPORT_KEY = os.environ.get("HISTORY_EXPORT_KEY", "")
 
+# When set, seed_demo also creates a "demo" user who can see the history and nothing else,
+# so visitors of a deployed demo can sign in. Empty: no demo user.
+DEMO_USER_PASSWORD = os.environ.get("DEMO_USER_PASSWORD", "")
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

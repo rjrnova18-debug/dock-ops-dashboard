@@ -9,7 +9,8 @@ from io import StringIO
 from random import Random
 
 import pytest
-from django.core.management import call_command
+from django.core.management import CommandError, call_command
+from django.test import override_settings
 
 from board import demo
 from board.demo import seed_transports
@@ -195,6 +196,33 @@ def test_history_has_unclosed_transports_and_missing_plans():
 
 
 # ------------------------------------------------------------------- The command
+
+@pytest.mark.django_db
+@override_settings(DEMO_USER_PASSWORD="a-long-demo-password")
+def test_seed_demo_creates_a_demo_user_who_can_only_see_the_history(django_user_model):
+    call_command("seed_demo", "--seed", "7", stdout=StringIO())
+    call_command("seed_demo", "--seed", "7", stdout=StringIO())      # running it again keeps one user
+
+    demo_user = django_user_model.objects.get(username="demo")
+    assert demo_user.check_password("a-long-demo-password")
+    assert demo_user.has_perm("board.view_history")
+    assert not demo_user.is_staff and not demo_user.is_superuser
+    assert django_user_model.objects.filter(username="demo").count() == 1
+
+
+@pytest.mark.django_db
+def test_without_a_demo_password_there_is_no_demo_user(django_user_model):
+    call_command("seed_demo", "--seed", "7", stdout=StringIO())
+
+    assert not django_user_model.objects.filter(username="demo").exists()
+
+
+@pytest.mark.django_db
+@override_settings(DEMO_USER_PASSWORD="short")
+def test_a_weak_demo_password_is_refused():
+    with pytest.raises(CommandError, match="DEMO_USER_PASSWORD"):
+        call_command("seed_demo", "--seed", "7", stdout=StringIO())
+
 
 @pytest.mark.django_db
 def test_seed_demo_replaces_every_transport():

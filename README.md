@@ -4,8 +4,8 @@ A live operations board for the loading area of a distribution center, built wit
 It follows every transport through its visit (appointment, arrival, inspection, loading,
 departure) and measures how closely the day follows the plan.
 
-> **Status: work in progress.** The live board works end to end; the simulator, the
-> history page and deployment are being built in phases (see [Roadmap](#roadmap).
+> **Status: work in progress.** The live board, the simulator and the history work end
+> to end; PostgreSQL, CI and deployment come next (see [Roadmap](#roadmap)).
 
 ## Features
 
@@ -15,8 +15,15 @@ departure) and measures how closely the day follows the plan.
   without reloading; any chart, the week's completed list and every transport open in
   a detail view, by mouse or keyboard. On a wide screen it is a fixed 1920×1080 "wall"
   layout scaled to fit; on smaller screens the panels stack.
-- **History** *(planned)* (sign-in required): indicators for any period, grouped by day, week or
-  month, an activity calendar, slowest and fastest loadings, and CSV / Excel downloads.
+- **History** (sign-in required): indicators for any week, month, year or date range,
+  grouped by day, week or month and filtered by cargo type; charts that switch to tables;
+  an activity calendar heat map; the slowest and fastest loadings with their detail; the
+  transports nobody closed; CSV and Excel downloads; a print layout. The filters live in
+  the address, so any view can be bookmarked or shared.
+- **Access**: Django's sign-in with a temporary lock after repeated failures
+  ([django-axes](https://pypi.org/project/django-axes/)), 12-character passwords, sessions
+  that expire after 30 minutes of inactivity and after 8 hours at most, and a "History
+  viewers" group that grants access. The CSV download also accepts a secret key for tools.
 - **Working time, not clock time**: durations skip nights, breaks, the weekly rest day
   and the public holidays of a configurable country (150+ countries, via the
   [`holidays`](https://pypi.org/project/holidays/) package).
@@ -56,7 +63,8 @@ source venv/Scripts/activate      # Windows (Git Bash); on macOS/Linux: source v
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_demo          # invented data around the current time (--seed N to repeat it)
-python manage.py runserver          # board at http://127.0.0.1:8000/, admin at /admin/ (createsuperuser first)
+python manage.py createsuperuser    # for the admin; add users to "History viewers" to open the history
+python manage.py runserver          # board at http://127.0.0.1:8000/, history at /history/, admin at /admin/
 ```
 
 ### Configuration
@@ -73,6 +81,8 @@ All settings have development defaults. For a deployment, set:
 | `HOLIDAYS_SUBDIVISION` | empty | State or province, for countries with regional holidays |
 | `BOARD_REFRESH_SECONDS` | `30` | How often the live board asks for fresh data |
 | `SIMULATOR_AUTO` | `0` | `1` to let the demo operation advance by itself every 1-2 minutes while the board is open |
+| `HISTORY_EXPORT_KEY` | empty (disabled) | Secret for the `X-Export-Key` header of the CSV download |
+| `DEMO_USER_PASSWORD` | empty (no demo user) | When set, `seed_demo` creates a `demo` user who can only see the history |
 
 ## Run the tests
 
@@ -84,14 +94,16 @@ python -m pytest
 
 ```
 dock-ops-dashboard/
-├── config/          Django project: settings, root URLs, WSGI/ASGI
+├── config/          Django project: settings, root URLs, session middleware, error pages
 ├── dockops/         Domain rules in pure Python (no Django)
 │   └── tests/       One test file per module
 ├── board/           Live board app: Transport model, demo data, views, page and JS
 │   ├── demo.py      Invented data as pure functions (seed)
 │   ├── conf.py      The operation's configuration and public holidays
 │   └── static/board/  board.js, charts.js, overlays.js (ES modules, no build step)
-├── templates/       Shared templates (base.html)
+├── history/         History app: private page, JSON endpoint, CSV/Excel downloads (exports.py)
+│   └── static/history/  history.js, history_charts.js, history_tables.js
+├── templates/       Shared templates: base, sign-in, error pages
 ├── static/          Shared CSS and JS, vendored fonts and Chart.js (with licenses)
 ├── manage.py
 ├── pyproject.toml   pytest configuration
@@ -105,7 +117,7 @@ dock-ops-dashboard/
 - [x] Live board: model, seed data, JSON endpoint, page, charts and overlays
 - [x] Public holidays as days off
 - [x] Simulator (manual and automatic) and admin
-- [ ] History page with sign-in, permissions and downloads
+- [x] History page with sign-in, permissions and downloads
 - [ ] PostgreSQL
 - [ ] Polish, CI and deployment
 
