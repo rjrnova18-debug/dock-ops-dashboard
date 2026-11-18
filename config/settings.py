@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -44,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "axes",                                           # locks sign-in after repeated failures
     "board",
 ]
 
@@ -54,8 +56,10 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "config.middleware.SessionMaxAgeMiddleware",      # signs out sessions older than 8 h
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "axes.middleware.AxesMiddleware",                 # must be last (django-axes)
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -98,6 +102,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -106,6 +111,29 @@ AUTH_PASSWORD_VALIDATORS = [
         "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
+
+
+# Sign-in and sessions (the history page is private; the live board is public)
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",            # counts failures before Django checks the password
+    "django.contrib.auth.backends.ModelBackend",
+]
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
+
+SESSION_COOKIE_AGE = 30 * 60              # a session expires after 30 minutes without activity...
+SESSION_SAVE_EVERY_REQUEST = True         # ...because every request pushes the expiry forward
+SESSION_MAX_AGE_SECONDS = 8 * 60 * 60     # ...and after 8 hours however active (config.middleware)
+
+# Temporary lock: 5 failed attempts for the same user from the same address lock that pair
+# for 15 minutes. Locking by user name alone would let anyone lock out the demo account.
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_TEMPLATE = "registration/lockout.html"
 
 
 # Internationalization

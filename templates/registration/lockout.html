@@ -1,0 +1,16 @@
+{% extends "page.html" %}
+{% load i18n %}
+
+{% comment %}Shown by django-axes after too many failed sign-in attempts (AXES_LOCKOUT_TEMPLATE).{% endcomment %}
+
+{% block title %}{% translate "Sign-in paused" %}{% endblock %}
+{% block page_code %}ACCESS{% endblock %}
+{% block page_title %}{% translate "Sign-in paused" %}{% endblock %}
+
+{% block page_body %}
+  <p class="notice" role="alert">
+    {% blocktranslate with limit=failure_limit %}After {{ limit }} failed attempts, signing in as this user from this address is paused for a few minutes.{% endblocktranslate %}
+  </p>
+  <p class="sub">{% translate "Wait and try again. The live board stays available meanwhile." %}</p>
+  <p class="page-links"><a href="{% url 'board:page' %}">◂ {% translate "Back to the live board" %}</a></p>
+{% endblock %}

@@ -227,6 +227,25 @@ table.t tr.row:focus-visible { outline: 2px solid var(--dry); outline-offset: -2
 .overlay .chartbox { height: 320px; }
 .cell-sub { display: block; font-size: 11px; color: var(--ink-3); }
 
+/* ---------- account and error pages (templates/page.html) ---------- */
+body.page { min-height: 100vh; }
+.page-wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+.page-card { width: min(520px, 100%); }
+.page-head { background: var(--navy); color: #fff; padding: 20px 28px 18px; display: flex; flex-direction: column; gap: 8px; }
+.page-head .code { font: 500 10px/1 var(--f-mono); letter-spacing: .14em; opacity: .75; }
+.page-head h1 { margin: 0; font: 700 26px/1 var(--f-display); letter-spacing: .12em; text-transform: uppercase; }
+.page-body { padding: 22px 28px 26px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; font-size: 15px; line-height: 1.5; }
+.page-body p { margin: 0; }
+.form { display: flex; flex-direction: column; gap: 14px; align-self: stretch; }
+.form label { display: flex; flex-direction: column; gap: 6px; font: 600 11px/1 var(--f-display); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); }
+.form input { font: 15px var(--f-body); padding: 10px 12px; border: 1px solid var(--seam-2); background: var(--plate); color: var(--ink); letter-spacing: normal; text-transform: none; }
+.btn { display: inline-block; font: 600 13px/1 var(--f-display); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; color: #fff; background: var(--navy-2); border: 0; padding: 12px 20px; cursor: pointer;
+       clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px); }
+.notice { padding: 10px 12px; background: var(--red-bg); color: var(--red-ink); border-left: 3px solid var(--red); font-size: 14px; }
+.page-links { font-size: 14px; }
+.page-links a, .page-body a:not(.btn) { color: var(--navy-2); }
+.mono { font-family: var(--f-mono); word-break: break-all; }
+
 /* ---------- flow mode: smaller screens ---------- */
 .screen { display: grid; gap: 14px; padding: 16px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 900px) {

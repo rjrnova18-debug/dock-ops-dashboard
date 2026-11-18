@@ -1,0 +1,12 @@
+{% extends "page.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Not found" %}{% endblock %}
+{% block page_code %}404{% endblock %}
+{% block page_title %}{% translate "Not found" %}{% endblock %}
+
+{% block page_body %}
+  <p>{% translate "There is nothing at this address:" %}</p>
+  <p class="mono">{{ request_path }}</p>
+  <p class="page-links"><a href="{% url 'board:page' %}">◂ {% translate "Go to the live board" %}</a></p>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% comment %}
+  A single plate in the middle of the screen: the frame of the account and error pages.
+  Pages fill page_code, page_title and page_body.
+{% endcomment %}
+
+{% block body_class %}page{% endblock %}
+
+{% block content %}
+<main class="page-wrap">
+  <section class="panel cut page-card" aria-labelledby="pageTitle">
+    <div class="in cut">
+      <div class="page-head">
+        <span class="code">DCK-OPS // {% block page_code %}{% endblock %}</span>
+        <h1 id="pageTitle">{% block page_title %}{% endblock %}</h1>
+      </div>
+      <div class="page-body">{% block page_body %}{% endblock %}</div>
+    </div>
+  </section>
+</main>
+{% endblock %}
