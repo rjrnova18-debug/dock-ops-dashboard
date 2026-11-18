@@ -3,15 +3,16 @@ Invented demo data, as pure functions: no database, no clock.
 
 seed_transports() builds a whole operation around `now`: months of history, this week,
 and a "today" that shows every state of the live board, whatever the hour or the day.
-Everything comes from the random.Random it receives, so the same seed number at the
-same moment gives the same transports. The seed_demo command saves the result.
+advance() moves that operation forward by one step. Everything comes from the
+random.Random they receive, so the same seed number at the same moment gives the same
+transports. The seed_demo and simulate commands save the results.
 
 Where a case depends on a business rule (how long a loading has run, this week's
 average), the seed asks dockops instead of repeating the rule here.
 """
 import random
 from dataclasses import replace
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from dockops import live, rules
 from dockops.models import DISPATCHED_STATUSES, CargoType, OpsConfig, Status, Transport
@@ -35,6 +36,8 @@ TYPICAL_LOADING = {DRY: 120, COLD: 190}
 SLOTS = (time(6, 30), time(7, 0), time(7, 30), time(13, 0), time(13, 30), time(14, 0), time(14, 30))
 # Old transports nobody closed: the history page lists them.
 UNCLOSED_DAYS_AGO = (12, 26, 41, 63)
+# Transport numbers start after this one: T-20001, T-20002...
+FIRST_NUMBER = 20000
 
 
 def minutes(amount: float) -> timedelta:
@@ -158,6 +161,147 @@ def _incoming(make: "_Factory", now: datetime, free_bays: list[int]) -> list[Tra
     ]
 
 
+# ------------------------------------------------------------------- The simulator
+
+STEP_CHANCE = 0.5            # chance that a transport ready for its next stage moves on in one step
+MIN_UPCOMING = 8             # appointments kept ahead, so the incoming list never runs dry
+MAX_NEW_PER_STEP = 3
+ON_THE_ROAD = timedelta(hours=2)      # dispatched -> in transit
+DELIVERY = timedelta(days=1)          # in transit -> delivered
+
+
+def advance(transports: list[Transport], now: datetime, rng: random.Random, config: OpsConfig) -> list[Transport]:
+    """
+    One step of the operation at `now` (DEMO-DATA.md, "Simulator").
+
+    Each transport ready for its next stage moves on by at most one stage, with some
+    chance, so the board changes a little at every step. Every move sets the actual time
+    and the new status together. Outside working time (outside the shift, on rest days and
+    holidays) only the road and the planning go on.
+
+    Returns only the transports that changed or are new; the caller saves them.
+    """
+    now = _whole_minute(now)
+    step = _Step(transports, rng)
+    step.on_the_road(now)
+    if _is_working_time(now, config):
+        step.depart(now)
+        step.finish_loadings(now, config)
+        step.start_loadings(now)
+        step.move_to_bays(now, config)
+        step.arrive(now)
+    step.plan_ahead(_Factory(rng, config.bays, last_number=_highest_number(transports)), now, config)
+    return list(step.moved.values())
+
+
+def own_pace(transport: Transport) -> float:
+    """
+    How many minutes of loading this transport needs. It is derived from its number, so
+    every step agrees on it without storing anything; some loadings run long on purpose.
+    """
+    typical = TYPICAL_LOADING[transport.cargo_type]
+    pace = random.Random(transport.number).gauss(typical, typical * 0.2)
+    return min(max(pace, typical * 0.6), typical * 1.6)
+
+
+def _is_working_time(now: datetime, config: OpsConfig) -> bool:
+    return not rules.is_rest_day(now.date(), config) and config.shift_start <= now.time() < config.shift_end
+
+
+def _highest_number(transports: list[Transport]) -> int:
+    numbers = [int(t.number.split("-")[1]) for t in transports if t.number.startswith("T-")]
+    return max(numbers, default=FIRST_NUMBER)
+
+
+def _next_working_days(today: date, count: int, config: OpsConfig) -> list[date]:
+    days, day = [], today
+    while len(days) < count:
+        day += ONE_DAY
+        if not rules.is_rest_day(day, config):
+            days.append(day)
+    return days
+
+
+class _Step:
+    """The transports during one step: who has already moved, and the moves themselves."""
+
+    def __init__(self, transports: list[Transport], rng: random.Random):
+        self.rng = rng
+        self.current = {t.number: t for t in transports}
+        self.moved: dict[str, Transport] = {}
+
+    def ready(self, status: Status) -> list[Transport]:
+        """Transports in `status` that have not moved in this step, in number order."""
+        return [t for number, t in sorted(self.current.items()) if t.status is status and number not in self.moved]
+
+    def move(self, transport: Transport, **fields) -> None:
+        new = replace(transport, **fields)
+        self.current[new.number] = self.moved[new.number] = new
+
+    def lucky(self) -> bool:
+        return self.rng.random() < STEP_CHANCE
+
+    # --- the stages, from the last one back, so that a bay freed now can be used in the same step
+
+    def on_the_road(self, now: datetime) -> None:
+        for t in self.ready(Status.IN_TRANSIT):
+            if t.departed_at and now - t.departed_at >= DELIVERY:
+                self.move(t, status=Status.DELIVERED)
+        for t in self.ready(Status.DISPATCHED):
+            if t.departed_at and now - t.departed_at >= ON_THE_ROAD:
+                self.move(t, status=Status.IN_TRANSIT)
+
+    def depart(self, now: datetime) -> None:
+        for t in self.ready(Status.LOADED):
+            if t.loading_ended_at and now - t.loading_ended_at >= minutes(15) and self.lucky():
+                self.move(t, status=Status.DISPATCHED, departed_at=now)
+
+    def finish_loadings(self, now: datetime, config: OpsConfig) -> None:
+        for t in self.ready(Status.LOADING):
+            if t.loading_started_at and rules.loading_minutes_so_far(t.loading_started_at, now, config) >= own_pace(t):
+                seal = t.seal_number or f"S-{self.rng.randint(10000, 99999)}"
+                self.move(t, status=Status.LOADED, loading_ended_at=now, seal_number=seal)
+
+    def start_loadings(self, now: datetime) -> None:
+        for t in self.ready(Status.INSPECTED):
+            if t.inspected_at and now - t.inspected_at >= minutes(5) and self.lucky():
+                self.move(t, status=Status.LOADING, loading_started_at=now)
+
+    def move_to_bays(self, now: datetime, config: OpsConfig) -> None:
+        """A waiting transport takes its assigned bay if it is free, otherwise the first free one."""
+        occupied = {t.bay for t in self.current.values() if t.is_at_bay}
+        free = [bay for bay in config.bays if bay not in occupied]
+        for t in sorted(self.ready(Status.WAITING), key=lambda t: t.arrived_at or now):
+            if not free:
+                break
+            if self.lucky():
+                bay = t.bay if t.bay in free else free[0]
+                free.remove(bay)
+                self.move(t, status=Status.INSPECTED, bay=bay, inspected_at=now)
+
+    def arrive(self, now: datetime) -> None:
+        """Scheduled transports arrive from 45 minutes before their appointment; old ones stay unclosed."""
+        yesterday = now.date() - ONE_DAY
+        for t in self.ready(Status.SCHEDULED):
+            appointment = t.planned_arrival
+            due = appointment is not None and appointment.date() >= yesterday and appointment - minutes(45) <= now
+            if due and self.lucky():
+                self.move(t, status=Status.WAITING, arrived_at=now)
+
+    def plan_ahead(self, make: "_Factory", now: datetime, config: OpsConfig) -> None:
+        """New appointments on the next working days, on the day that has the fewest so far."""
+        upcoming = [t for t in self.current.values()
+                    if t.status is Status.SCHEDULED and t.planned_arrival and t.planned_arrival > now]
+        days = _next_working_days(now.date(), 3, config)
+        for _ in range(min(MIN_UPCOMING - len(upcoming), MAX_NEW_PER_STEP)):
+            per_day = {day: sum(t.planned_arrival.date() == day for t in upcoming) for day in days}
+            day = min(days, key=per_day.get)
+            new = make.transport(datetime.combine(day, make.rng.choice(SLOTS)), make.cargo(),
+                                 status=Status.SCHEDULED, notes=make.note())
+            upcoming.append(new)
+            self.current[new.number] = self.moved[new.number] = new
+
+
 # ------------------------------------------------------------------- Helpers
 
 def _start_for(target_minutes: float, end: datetime, config: OpsConfig, *, finished: bool) -> datetime:
@@ -194,10 +338,10 @@ def _whole_minute(moment: datetime) -> datetime:
 class _Factory:
     """Makes coherent transports with invented names and numbers, all from one random generator."""
 
-    def __init__(self, rng: random.Random, bays: tuple[int, ...]):
+    def __init__(self, rng: random.Random, bays: tuple[int, ...], last_number: int = FIRST_NUMBER):
         self.rng = rng
         self.bays = bays
-        self.count = 0
+        self.last_number = last_number
 
     # --- random pieces
 
@@ -218,10 +362,10 @@ class _Factory:
 
     def transport(self, appointment: datetime, cargo: CargoType, **fields) -> Transport:
         """A transport planned from its appointment (DEMO-DATA planning pattern), plus `fields`."""
-        self.count += 1
+        self.last_number += 1
         start, end, departure = PLAN_OFFSETS[cargo]
         return Transport(**{
-            "number": f"T-{20000 + self.count}",
+            "number": f"T-{self.last_number}",
             "cargo_type": cargo,
             "planned_arrival": appointment,
             "planned_loading_start": appointment + minutes(start),

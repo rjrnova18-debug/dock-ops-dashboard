@@ -154,11 +154,17 @@ class Transport(models.Model):
     @classmethod
     def from_domain(cls, transport: DomainTransport) -> "Transport":
         """A new, unsaved row from a dockops dataclass (used by the seed and the simulator)."""
-        return cls(
-            number=transport.number,
-            status=transport.status.value,
-            cargo_type=transport.cargo_type.value,
-            bay=transport.bay,
-            **{name: to_aware(getattr(transport, name)) for name in TIME_FIELDS},
-            **{name: getattr(transport, name) for name in TEXT_FIELDS},
-        )
+        row = cls()
+        row.apply_domain(transport)
+        return row
+
+    def apply_domain(self, transport: DomainTransport) -> None:
+        """Copy every field of a dockops dataclass onto this row (not saved yet)."""
+        self.number = transport.number
+        self.status = transport.status.value
+        self.cargo_type = transport.cargo_type.value
+        self.bay = transport.bay
+        for name in TIME_FIELDS:
+            setattr(self, name, to_aware(getattr(transport, name)))
+        for name in TEXT_FIELDS:
+            setattr(self, name, getattr(transport, name))
