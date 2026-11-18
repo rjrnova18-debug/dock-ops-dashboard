@@ -4,11 +4,14 @@ from io import StringIO
 from random import Random
 
 import pytest
+from django.core.cache import cache
 from django.core.management import call_command
+from django.test import override_settings
+from django.urls import reverse
 
 from board.demo import MIN_UPCOMING, advance, own_pace, seed_transports
 from board.models import Transport
-from board.simulator import run_step
+from board.simulator import LOCK_KEY, run_automatic_step_if_due, run_step
 from dockops.models import OpsConfig, Status
 from dockops.models import Transport as DomainTransport
 
@@ -131,6 +134,49 @@ def test_run_step_updates_rows_in_place_and_adds_new_ones(seeded):
     assert changes > 0
     assert Transport.objects.count() >= count_before
     assert Transport.objects.values("number").distinct().count() == Transport.objects.count()
+
+
+@pytest.fixture
+def empty_cache():
+    cache.clear()
+    yield
+    cache.clear()
+
+
+@pytest.mark.django_db
+def test_the_automatic_mode_is_off_by_default(seeded, empty_cache):
+    Transport.objects.bulk_create(Transport.from_domain(t) for t in seeded)
+
+    assert run_automatic_step_if_due(THURSDAY) is False
+
+
+@pytest.mark.django_db
+@override_settings(SIMULATOR_AUTO=True)
+def test_the_automatic_mode_steps_once_per_gap(seeded, empty_cache):
+    Transport.objects.bulk_create(Transport.from_domain(t) for t in seeded)
+
+    assert run_automatic_step_if_due(THURSDAY) is True
+    assert run_automatic_step_if_due(THURSDAY + timedelta(seconds=30)) is False      # not due yet
+    assert run_automatic_step_if_due(THURSDAY + timedelta(seconds=121)) is True      # the gap is 60-120 s
+
+
+@pytest.mark.django_db
+@override_settings(SIMULATOR_AUTO=True)
+def test_a_request_that_finds_the_lock_taken_does_not_step(seeded, empty_cache):
+    cache.add(LOCK_KEY, True)                        # another request is stepping right now
+
+    assert run_automatic_step_if_due(THURSDAY) is False
+
+
+@pytest.mark.django_db
+def test_the_board_request_gives_the_automatic_mode_its_chance(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr("board.views.local_now", lambda: THURSDAY)
+    monkeypatch.setattr("board.simulator.run_automatic_step_if_due", calls.append)
+
+    client.get(reverse("board:data"))
+
+    assert calls == [THURSDAY]
 
 
 @pytest.mark.django_db

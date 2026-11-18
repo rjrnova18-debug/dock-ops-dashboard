@@ -70,6 +70,7 @@ All settings have development defaults. For a deployment, set:
 | `HOLIDAYS_COUNTRY` | empty (no holidays) | ISO country code, e.g. `US`, `DE`. Public holidays count as days off |
 | `HOLIDAYS_SUBDIVISION` | empty | State or province, for countries with regional holidays |
 | `BOARD_REFRESH_SECONDS` | `30` | How often the live board asks for fresh data |
+| `SIMULATOR_AUTO` | `0` | `1` to let the demo operation advance by itself every 1-2 minutes while the board is open |
 
 ## Run the tests
 

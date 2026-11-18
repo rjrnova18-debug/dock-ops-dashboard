@@ -152,5 +152,7 @@ HOLIDAYS_SUBDIVISION = os.environ.get("HOLIDAYS_SUBDIVISION", "")
 # How often the live board asks for fresh data.
 BOARD_REFRESH_SECONDS = int(os.environ.get("BOARD_REFRESH_SECONDS", "30"))
 
-# Automatic simulator: the operation advances by itself (for the deployed demo).
+# Automatic simulator: the operation advances by itself every 1-2 minutes while the board
+# is open (for the deployed demo). Its timing and lock live in the cache: the default
+# in-memory cache is per process, which is enough for a single-process demo.
 SIMULATOR_AUTO = os.environ.get("SIMULATOR_AUTO", "0") == "1"
