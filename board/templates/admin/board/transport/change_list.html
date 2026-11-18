@@ -1,0 +1,17 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% comment %}
+  The transport list of the admin, plus one button that advances the demo simulation.
+  Everything else comes from Django's own change_list.html (block.super).
+{% endcomment %}
+
+{% block object-tools-items %}
+  <li>
+    <form method="post" action="{% url 'admin:board_transport_simulate' %}" style="display:inline">
+      {% csrf_token %}
+      <button type="submit" class="button" style="padding:6px 12px">{% translate "Advance the simulation one step" %}</button>
+    </form>
+  </li>
+  {{ block.super }}
+{% endblock %}
