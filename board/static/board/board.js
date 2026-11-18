@@ -9,6 +9,7 @@ import {
   ALERT, GROUP, STATUS, badge, clock, coldChip, dayLabel, duration, esc, hhmm, hhmmss, longDay, moment, pad, weekRange,
 } from "../js/format.js";
 import { STATUS_COLORS, createTrendChart, renderGauges, renderPipeline, updateTrendChart } from "./charts.js";
+import { refreshOverlay, setupOverlays } from "./overlays.js";
 
 const $ = (id) => document.getElementById(id);
 const screenEl = $("screen");
@@ -20,11 +21,8 @@ const state = {
   requestFailed: false,
 };
 const trends = { loading: createTrendChart($("loadingChart")), cycle: createTrendChart($("cycleChart")) };
-const listeners = [];     // other modules (the overlays) that want each new payload
 
-export const currentPayload = () => state.payload;
-export const secondsSinceAnswer = () => (performance.now() - state.receivedAt) / 1000;
-export const onPayload = (listener) => listeners.push(listener);
+const secondsSinceAnswer = () => (performance.now() - state.receivedAt) / 1000;
 
 // ------------------------------------------------------------------ Refresh loop
 
@@ -67,7 +65,7 @@ function render(payload) {
   tick();
 
   if (focused) document.querySelector(`[data-number="${CSS.escape(focused)}"]`)?.focus();
-  listeners.forEach((listener) => listener(payload));
+  refreshOverlay();
 }
 
 // ------------------------------------------------------------------ Header
@@ -163,7 +161,7 @@ const LEVEL_CHIP = { ok: `● ${gettext("OK")}`, warning: `▲ ${gettext("Warnin
 const PAUSED_BY = { break: gettext("Break"), off_shift: gettext("Off shift") };
 
 /** The loading timer, by timer.state (API-CONTRACT). */
-export function timerBlock(row) {
+function timerBlock(row) {
   const timer = row.timer;
   if (timer.state === "not_started") {
     return `<div class="timer"><div class="msg">${esc(gettext("Waiting for loading to start"))}</div></div>`;
@@ -254,6 +252,7 @@ function fitScreen() {
   screenEl.style.top = `${(innerHeight - 1080 * scale) / 2}px`;
 }
 
+setupOverlays({ getPayload: () => state.payload, timerBlock });
 fitScreen();
 addEventListener("resize", fitScreen);
 setInterval(tick, 1000);
