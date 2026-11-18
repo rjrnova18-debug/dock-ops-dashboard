@@ -50,6 +50,7 @@ python -m venv venv
 source venv/Scripts/activate      # Windows (Git Bash); on macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
+python manage.py seed_demo          # invented data around the current time (--seed N to repeat it)
 python manage.py runserver
 ```
 
