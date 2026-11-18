@@ -113,6 +113,14 @@ def test_the_carryovers_show(now):
 
 
 @any_hour
+def test_every_visit_that_loaded_went_through_a_bay(now):
+    transports, payload = seed(now)
+
+    assert all(row["bay"] is not None for row in payload["week"]["completed"])
+    assert all(t.bay in CONFIG.bays for t in transports if t.loading_started_at)
+
+
+@any_hour
 def test_transports_were_dispatched_today(now):
     _, payload = seed(now)
 

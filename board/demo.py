@@ -44,7 +44,7 @@ def minutes(amount: float) -> timedelta:
 def seed_transports(now: datetime, rng: random.Random, config: OpsConfig) -> list[Transport]:
     """A whole demo operation around `now` (see Replica docs/DEMO-DATA.md)."""
     now = now.replace(second=0, microsecond=0)
-    make = _Factory(rng)
+    make = _Factory(rng, config.bays)
 
     history = _history(make, now, config)
     finished_today = _finished_today(make, now, config)
@@ -194,8 +194,9 @@ def _whole_minute(moment: datetime) -> datetime:
 class _Factory:
     """Makes coherent transports with invented names and numbers, all from one random generator."""
 
-    def __init__(self, rng: random.Random):
+    def __init__(self, rng: random.Random, bays: tuple[int, ...]):
         self.rng = rng
+        self.bays = bays
         self.count = 0
 
     # --- random pieces
@@ -243,7 +244,8 @@ class _Factory:
         if status in DISPATCHED_STATUSES and departed_at is None:
             departed_at = loading_end + self.random_minutes(15, 60, 25)
         return self.transport(
-            appointment, cargo, status=status, arrived_at=arrived, inspected_at=inspected,
+            appointment, cargo, status=status, bay=self.rng.choice(self.bays) if self.bays else None,
+            arrived_at=arrived, inspected_at=inspected,
             loading_started_at=started, loading_ended_at=loading_end, departed_at=departed_at,
             seal_number=f"S-{self.rng.randint(10000, 99999)}", notes=self.note(),
         )
