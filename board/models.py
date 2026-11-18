@@ -44,6 +44,11 @@ TIME_FIELDS = (
 )
 TEXT_FIELDS = ("carrier", "planner", "destination", "booking_ref", "seal_number", "notes")
 
+# Access to the history page: a permission on Transport, given through a group that the
+# data migration 0002 creates. The history app checks HISTORY_PERMISSION.
+HISTORY_PERMISSION = "board.view_history"
+HISTORY_VIEWERS_GROUP = "History viewers"
+
 
 # ------------------------------------------------------------------- Time zone bridge
 

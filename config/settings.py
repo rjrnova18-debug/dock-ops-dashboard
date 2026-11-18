@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "axes",                                           # locks sign-in after repeated failures
     "board",
+    "history",
 ]
 
 MIDDLEWARE = [

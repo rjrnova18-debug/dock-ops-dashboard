@@ -13,6 +13,7 @@ urlpatterns = [
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),     # POST only
     # The translated texts used by the JavaScript (gettext() in the browser).
     path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
+    path("", include("history.urls")),
     path("", include("board.urls")),
 ]
 
