@@ -4,10 +4,12 @@ The history's views: thin glue between HTTP, the database and dockops.history.
 Everything here is private (HISTORY.md, "Access"): the page sends a visitor to sign in,
 the data endpoints answer 401/403 as JSON and never redirect, and no answer is cached.
 """
+import hmac
 from datetime import date
 from functools import wraps
 from typing import NamedTuple
 
+from django.conf import settings
 from django.http import JsonResponse
 from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
@@ -17,22 +19,39 @@ from board.conf import get_ops_config
 from board.models import HISTORY_PERMISSION, Transport, local_now
 from dockops import history
 from dockops.models import CargoType
+from history import exports
 
 MAX_PERIOD_DAYS = 3 * 366          # "at most 3 years apart"
 
 
 # ------------------------------------------------------------------- Access
 
-def api_permission_required(view):
+def access_error(request) -> JsonResponse | None:
     """For data endpoints: 401 without a session, 403 without the permission, both as JSON."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": _("Sign in to see the history.")}, status=401)
+    if not request.user.has_perm(HISTORY_PERMISSION):
+        return JsonResponse({"error": _("Your account does not have access to the history.")}, status=403)
+    return None
+
+
+def api_permission_required(view):
+    """Data endpoints answer access errors as JSON; they never redirect to the sign-in page."""
     @wraps(view)
     def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return JsonResponse({"error": _("Sign in to see the history.")}, status=401)
-        if not request.user.has_perm(HISTORY_PERMISSION):
-            return JsonResponse({"error": _("Your account does not have access to the history.")}, status=403)
-        return view(request, *args, **kwargs)
+        return access_error(request) or view(request, *args, **kwargs)
     return wrapper
+
+
+def has_export_key(request) -> bool:
+    """
+    The CSV download also accepts a secret key in the X-Export-Key header, for tools that
+    cannot sign in. An empty settings.HISTORY_EXPORT_KEY disables this route.
+    compare_digest takes the same time wherever the keys differ, so timing reveals nothing.
+    """
+    expected = settings.HISTORY_EXPORT_KEY
+    given = request.headers.get("X-Export-Key", "")
+    return bool(expected) and hmac.compare_digest(given.encode(), expected.encode())
 
 
 # ------------------------------------------------------------------- Request
@@ -92,3 +111,42 @@ def history_data(request):
     summary = history.build_history_summary(_transports(params), params.start, params.end, local_now(),
                                             get_ops_config(), params.group_by, params.cargo_type)
     return JsonResponse(summary)
+
+
+@require_GET
+@never_cache
+def history_csv(request):
+    """The fact table as CSV. Not affected by group_by."""
+    if not has_export_key(request):
+        denied = access_error(request)
+        if denied:
+            return denied
+    try:
+        params = read_request(request.GET)
+    except ValueError as error:
+        return JsonResponse({"error": str(error)}, status=400)
+    rows = history.fact_rows(_transports(params), params.start, params.end, local_now(), get_ops_config(),
+                             params.cargo_type)
+    return exports.csv_response(rows, exports.file_name(params.start, params.end, params.cargo_type, "csv"))
+
+
+@require_GET
+@never_cache
+@api_permission_required
+def history_excel(request):
+    """The four-sheet workbook: summary, series by the chosen grouping, series by day, transports."""
+    try:
+        params = read_request(request.GET)
+    except ValueError as error:
+        return JsonResponse({"error": str(error)}, status=400)
+    transports, now, config = _transports(params), local_now(), get_ops_config()
+
+    def summary(group_by: str) -> dict:
+        return history.build_history_summary(transports, params.start, params.end, now, config,
+                                             group_by, params.cargo_type)
+
+    chosen = summary(params.group_by)
+    daily = None if params.group_by == "day" else summary("day")["series"]
+    rows = history.fact_rows(transports, params.start, params.end, now, config, params.cargo_type)
+    name = exports.file_name(params.start, params.end, params.cargo_type, "xlsx")
+    return exports.excel_response(chosen, daily, rows, name)

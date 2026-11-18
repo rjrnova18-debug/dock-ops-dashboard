@@ -136,6 +136,10 @@ AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_TEMPLATE = "registration/lockout.html"
 
+# The history's CSV download also accepts this key in an X-Export-Key header, for tools that
+# cannot sign in. It lives in the environment, never in the code; empty disables the route.
+HISTORY_EXPORT_KEY = os.environ.get("HISTORY_EXPORT_KEY", "")
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
